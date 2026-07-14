@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: taskflow_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: taskflow_db
+      MYSQL_USER: taskflow_user
+      MYSQL_PASSWORD: taskflow_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - taskflow-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow_api
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: taskflow_db
+      DB_USER: taskflow_user
+      DB_PASSWORD: taskflow_password
+      JWT_SECRET: your_jwt_secret_key_here
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - taskflow-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  taskflow-network:
+    driver: bridge
